@@ -21,7 +21,7 @@ class ExportEmbeddings:
         np.savetxt(self.export_dir / f"embeddings-{embeddings_name}.tsv", embeddings, delimiter=delim)
 
     def gen_metadata(self, column_labels: list[str]):
-        with open(self.export_dir / "embeddings-metadata", "w") as f:
+        with open(self.export_dir / "embeddings-metadata.tsv", "w") as f:
             f.write("\t".join(column_labels) + "\n")
             for record in self.text_data:
                 samples = list(str(r) for r in record.values())
