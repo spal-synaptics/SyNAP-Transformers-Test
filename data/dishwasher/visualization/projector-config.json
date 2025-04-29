@@ -1,0 +1,16 @@
+{
+  "embeddings": [
+    {
+      "tensorName": "llama",
+      "tensorShape": [117, 384],
+      "tensorPath": "https://raw.githubusercontent.com/spal-synaptics/SyNAP-Transformers-Test/refs/heads/main/data/dishwasher/visualization/embeddings-llama.tsv",
+      "metadataPath": "https://raw.githubusercontent.com/spal-synaptics/SyNAP-Transformers-Test/refs/heads/main/data/dishwasher/visualization/embeddings-metadata.tsv"
+    },
+    {
+      "tensorName": "synap",
+      "tensorShape": [117, 384],
+      "tensorPath": "https://raw.githubusercontent.com/spal-synaptics/SyNAP-Transformers-Test/refs/heads/main/data/dishwasher/visualization/embeddings-synap.tsv",
+      "metadataPath": "https://raw.githubusercontent.com/spal-synaptics/SyNAP-Transformers-Test/refs/heads/main/data/dishwasher/visualization/embeddings-metadata.tsv"
+    }
+  ]
+}
