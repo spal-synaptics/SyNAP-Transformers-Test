@@ -1,4 +1,5 @@
 {
+    "model_name": "Llama (Q8_0)",
     "model_path": "models/gguf/all-MiniLM-L6-v2-Q8_0.gguf",
     "token_len": 128,
     "normalize": false

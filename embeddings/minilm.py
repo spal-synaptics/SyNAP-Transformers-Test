@@ -14,15 +14,13 @@ class BaseEmbeddings(ABC):
 
     def __init__(
         self,
-        model_type: Literal["llama", "synap"],
+        model_name: str,
         model_path: str | os.PathLike,
         token_len: int,
         normalize: bool,
         export_dir: str | os.PathLike | None
     ):
-        if model_type not in ["llama", "synap"]:
-            raise ValueError(f"Unsupported model type: '{model_type}")
-        self.model_type = model_type
+        self.model_name = model_name
         self.model_path = Path(model_path)
         self.token_len = token_len
         self.normalize = normalize
@@ -30,20 +28,26 @@ class BaseEmbeddings(ABC):
         self.export_dir.mkdir(exist_ok=True, parents=True)
 
     def __repr__(self) -> str:
-        return f"{self.model_type.capitalize()} ({self.model_path}, token_len: {self.token_len})"
-    
-    @property
-    def name(self) -> str:
-        return self.model_path.name
+        return f"{self.model_name} ({self.model_path}, token_len: {self.token_len})"
     
     @abstractmethod
     def generate(self, text: str) -> list[float]:
         ...
 
+    @classmethod
+    def from_config(cls, config: dict | str | os.PathLike) -> "BaseEmbeddings":
+        if not isinstance(config, dict):
+            with open(config) as f:
+                model_config = json.load(f)
+        else:
+            model_config = config
+        return cls(**model_config)
+
 
 class EmbeddingsLlama(BaseEmbeddings):
     def __init__(
         self,
+        model_name: str,
         model_path: str | os.PathLike,
         token_len: int,
         normalize: bool = False,
@@ -51,7 +55,7 @@ class EmbeddingsLlama(BaseEmbeddings):
         export_dir: str | os.PathLike | None = None
     ):
         super().__init__(
-            "llama",
+            model_name,
             model_path,
             token_len,
             normalize,
@@ -72,22 +76,12 @@ class EmbeddingsLlama(BaseEmbeddings):
             raise ValueError("No embedding returned")
         return embedding
 
-    @classmethod
-    def from_config(cls, config_json: str | os.PathLike) -> "EmbeddingsLlama":
-        with open(config_json) as f:
-            config: dict = json.load(f)
-        return cls(
-            config["model_path"], 
-            config["token_len"], 
-            config.get("n_threads"), 
-            config.get("normalize", False)
-        )
-
 
 class EmbeddingsSynap(BaseEmbeddings):
 
     def __init__(
         self,
+        model_name: str,
         model_path: str,
         token_len: int,
         hf_model: str,
@@ -95,7 +89,7 @@ class EmbeddingsSynap(BaseEmbeddings):
         export_dir: str | os.PathLike | None = None
     ):
         super().__init__(
-            "synap",
+            model_name,
             model_path,
             token_len,
             normalize,
@@ -135,23 +129,24 @@ class EmbeddingsSynap(BaseEmbeddings):
         for inp in self.model.inputs:
             inp.assign(tokens[inp.name])
         model_outputs = self.model.predict()
-        token_embeddings = model_outputs[1].to_numpy()
+        token_embeddings = model_outputs[0].to_numpy()
         embeddings = self.mean_pooling(token_embeddings, attn_mask)
         if self.normalize:
             embeddings = self.normalize(embeddings)
 
         return embeddings.squeeze(0).tolist()
 
-    @classmethod
-    def from_config(cls, config_json: str | os.PathLike) -> "EmbeddingsSynap":
-        with open(config_json) as f:
-            config: dict = json.load(f)
-        return cls(
-            config["model_path"], 
-            config["token_len"], 
-            config["hf_model"], 
-            config.get("normalize", False)
-        )
+
+def embeddings_factory(config_json: str | os.PathLike) -> EmbeddingsLlama | EmbeddingsSynap:
+    with open(config_json) as f:
+        config: dict = json.load(f)
+    model_path = Path(config["model_path"])
+    if model_path.suffix == ".synap":
+        return EmbeddingsSynap.from_config(config)
+    elif model_path.suffix == ".gguf":
+        return EmbeddingsLlama.from_config(config)
+    else:
+        raise ValueError(f"Unsupported model format '{model_path.suffix}' ({model_path})")
 
 
 if __name__ == "__main__":

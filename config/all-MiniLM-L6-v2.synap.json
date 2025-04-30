@@ -1,5 +1,6 @@
 {
-    "model_path": "models/synap/all-MiniLM-L6-v2-qdq-random.synap",
+    "model_name": "SyNAP",
+    "model_path": "models/synap/all-MiniLM-L6-v2.synap",
     "token_len": 128,
     "hf_model": "sentence-transformers/all-MiniLM-L6-v2",
     "normalize": false

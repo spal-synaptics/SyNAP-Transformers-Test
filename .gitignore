@@ -6,6 +6,7 @@ models/
 venv/
 models/
 stats/
+export/
 __pycache__/
 *.py[cod]
 *.npy
