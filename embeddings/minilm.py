@@ -1,6 +1,8 @@
 import json
 import os
-import sys
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Literal
 
 import numpy as np
 from llama_cpp import Llama
@@ -8,19 +10,55 @@ from synap import Network
 from transformers import AutoTokenizer
 
 
-class EmbeddingsLlama:
+class BaseEmbeddings(ABC):
+
+    def __init__(
+        self,
+        model_type: Literal["llama", "synap"],
+        model_path: str | os.PathLike,
+        token_len: int,
+        normalize: bool,
+        export_dir: str | os.PathLike | None
+    ):
+        if model_type not in ["llama", "synap"]:
+            raise ValueError(f"Unsupported model type: '{model_type}")
+        self.model_type = model_type
+        self.model_path = Path(model_path)
+        self.token_len = token_len
+        self.normalize = normalize
+        self.export_dir = Path(export_dir or f"export/{self.model_path.stem}")
+        self.export_dir.mkdir(exist_ok=True, parents=True)
+
+    def __repr__(self) -> str:
+        return f"{self.model_type.capitalize()} ({self.model_path}, token_len: {self.token_len})"
+    
+    @property
+    def name(self) -> str:
+        return self.model_path.name
+    
+    @abstractmethod
+    def generate(self, text: str) -> list[float]:
+        ...
+
+
+class EmbeddingsLlama(BaseEmbeddings):
     def __init__(
         self,
         model_path: str | os.PathLike,
         token_len: int,
         normalize: bool = False,
         n_threads: int | None = None,
+        export_dir: str | os.PathLike | None = None
     ):
-        self.token_len = token_len
-        self.model_path = model_path
-        self.normalize = normalize
-        self.llm = Llama(
-            model_path=self.model_path,
+        super().__init__(
+            "llama",
+            model_path,
+            token_len,
+            normalize,
+            export_dir
+        )
+        self.model = Llama(
+            model_path=str(self.model_path),
             n_threads=n_threads,
             n_threads_batch=n_threads,
             n_ctx=self.token_len,
@@ -28,11 +66,8 @@ class EmbeddingsLlama:
             verbose=False
         )
 
-    def __repr__(self) -> str:
-        return f"Llama ({self.model_path}, token_len: {self.token_len})"
-
     def generate(self, text: str) -> list[float]:
-        embedding = self.llm.embed(text, normalize=self.normalize)
+        embedding = self.model.embed(text, normalize=self.normalize)
         if embedding is None:
             raise ValueError("No embedding returned")
         return embedding
@@ -49,7 +84,7 @@ class EmbeddingsLlama:
         )
 
 
-class EmbeddingsSynap:
+class EmbeddingsSynap(BaseEmbeddings):
 
     def __init__(
         self,
@@ -57,15 +92,17 @@ class EmbeddingsSynap:
         token_len: int,
         hf_model: str,
         normalize: bool = False,
+        export_dir: str | os.PathLike | None = None
     ):
-        self.model_path = model_path
-        self.model = Network(self.model_path)
-        self.token_len = token_len
+        super().__init__(
+            "synap",
+            model_path,
+            token_len,
+            normalize,
+            export_dir
+        )
+        self.model = Network(str(self.model_path))
         self.tokenizer = AutoTokenizer.from_pretrained(hf_model)
-        self.normalize = normalize
-
-    def __repr__(self) -> str:
-        return f"SyNAP ({self.model_path}, token_len: {self.token_len})"
 
     @staticmethod
     def mean_pooling(
