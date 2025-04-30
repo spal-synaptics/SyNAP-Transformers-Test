@@ -2,20 +2,22 @@ import os
 from pathlib import Path
 
 
-def get_model_configs(config_loc: str | os.PathLike, model_types: list[str]) -> list[Path]:
+def get_model_configs(config_loc: str | os.PathLike, model_types: list[str], exclude: list[str, os.PathLike] = None) -> list[Path]:
     config_loc = Path(config_loc).resolve()
     model_configs: list[Path] = []
+    exclude: list[Path] = [Path(f).resolve() for f in exclude] if exclude else []
     if config_loc.is_dir():
         for config in config_loc.glob("*.json"):
+            if config in exclude:
+                continue
             for model_type in model_types:
                 if model_type in config.name:
                     model_configs.append(config)
     else:
-        model_configs.append(config_loc)
+        if config_loc not in exclude:
+            model_configs.append(config_loc)
     return sorted(model_configs)
 
 
 if __name__ == "__main__":
-    print(get_model_configs("config", ["gguf", "synap"]))
-    print(get_model_configs("config/all-MiniLM-L6-v2-qdq.synap.json", ["gguf", "synap"]))
-    print(get_model_configs("config/all-MiniLM-L6-v2-Q8_0.gguf.json", ["gguf", "synap"]))
+    pass

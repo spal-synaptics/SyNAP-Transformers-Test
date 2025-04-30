@@ -1,50 +1,17 @@
 import json
 import os
-from abc import ABC, abstractmethod
+import time
 from pathlib import Path
-from typing import Literal
 
 import numpy as np
 from llama_cpp import Llama
 from synap import Network
 from transformers import AutoTokenizer
 
-
-class BaseEmbeddings(ABC):
-
-    def __init__(
-        self,
-        model_name: str,
-        model_path: str | os.PathLike,
-        token_len: int,
-        normalize: bool,
-        export_dir: str | os.PathLike | None
-    ):
-        self.model_name = model_name
-        self.model_path = Path(model_path)
-        self.token_len = token_len
-        self.normalize = normalize
-        self.export_dir = Path(export_dir or f"export/{self.model_path.stem}")
-        self.export_dir.mkdir(exist_ok=True, parents=True)
-
-    def __repr__(self) -> str:
-        return f"{self.model_name} ({self.model_path}, token_len: {self.token_len})"
-    
-    @abstractmethod
-    def generate(self, text: str) -> list[float]:
-        ...
-
-    @classmethod
-    def from_config(cls, config: dict | str | os.PathLike) -> "BaseEmbeddings":
-        if not isinstance(config, dict):
-            with open(config) as f:
-                model_config = json.load(f)
-        else:
-            model_config = config
-        return cls(**model_config)
+from .base import BaseEmbeddingsModel
 
 
-class EmbeddingsLlama(BaseEmbeddings):
+class MiniLMLlama(BaseEmbeddingsModel):
     def __init__(
         self,
         model_name: str,
@@ -71,13 +38,16 @@ class EmbeddingsLlama(BaseEmbeddings):
         )
 
     def generate(self, text: str) -> list[float]:
+        st = time.time()
         embedding = self.model.embed(text, normalize=self.normalize)
+        et = time.time()
+        self._infer_times.append(et - st)
         if embedding is None:
             raise ValueError("No embedding returned")
         return embedding
 
 
-class EmbeddingsSynap(BaseEmbeddings):
+class MiniLMSynap(BaseEmbeddingsModel):
 
     def __init__(
         self,
@@ -128,7 +98,10 @@ class EmbeddingsSynap(BaseEmbeddings):
 
         for inp in self.model.inputs:
             inp.assign(tokens[inp.name])
+        st = time.time()
         model_outputs = self.model.predict()
+        et = time.time()
+        self._infer_times.append(et - st)
         token_embeddings = model_outputs[0].to_numpy()
         embeddings = self.mean_pooling(token_embeddings, attn_mask)
         if self.normalize:
@@ -137,14 +110,14 @@ class EmbeddingsSynap(BaseEmbeddings):
         return embeddings.squeeze(0).tolist()
 
 
-def embeddings_factory(config_json: str | os.PathLike) -> EmbeddingsLlama | EmbeddingsSynap:
+def minilm_factory(config_json: str | os.PathLike) -> MiniLMLlama | MiniLMSynap:
     with open(config_json) as f:
         config: dict = json.load(f)
     model_path = Path(config["model_path"])
     if model_path.suffix == ".synap":
-        return EmbeddingsSynap.from_config(config)
+        return MiniLMSynap.from_config(config)
     elif model_path.suffix == ".gguf":
-        return EmbeddingsLlama.from_config(config)
+        return MiniLMLlama.from_config(config)
     else:
         raise ValueError(f"Unsupported model format '{model_path.suffix}' ({model_path})")
 
