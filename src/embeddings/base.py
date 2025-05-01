@@ -11,13 +11,11 @@ class BaseEmbeddingsModel(ABC):
         self,
         model_name: str,
         model_path: str | os.PathLike,
-        token_len: int,
         normalize: bool,
         export_dir: str | os.PathLike | None
     ):
         self.model_name = model_name
         self.model_path = Path(model_path)
-        self.token_len = token_len
         self.normalize = normalize
         self.export_dir = Path(export_dir or f"export/{self.model_path.stem}")
         self.export_dir.mkdir(exist_ok=True, parents=True)
@@ -25,7 +23,7 @@ class BaseEmbeddingsModel(ABC):
         self._infer_times = deque(maxlen=100)
 
     def __repr__(self) -> str:
-        return f"{self.model_name} ({self.model_path}, token_len: {self.token_len})"
+        return f"{self.model_name} [{self.model_path}]"
     
     @property
     def last_infer_time(self) -> float | None:

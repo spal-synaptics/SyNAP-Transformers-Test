@@ -9,7 +9,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from .embeddings.minilm import BaseEmbeddingsModel, minilm_factory
 from .utils.export import ExportEmbeddings
-from .utils.files import get_model_configs
+from .utils.model import get_model_configs
 
 QA_FILE: Final = "data/dishwasher/qa_dishwasher.json"
 MODEL_CONFIGS_DIR: Final = "config"
@@ -34,7 +34,7 @@ class TextAgent:
             raise RuntimeError(f"Unsupported embeddings model: {model}")
         texts = [pair["question"] + " " + pair["answer"] for pair in self.qa_pairs]
         embeddings = []
-        for text in tqdm(texts, desc=f"Computing embeddings ({model})"):
+        for text in tqdm(texts, desc=f"Computing embeddings: {model}"):
             embeddings.append(model.generate(text))
         embeddings = np.array(embeddings)
 

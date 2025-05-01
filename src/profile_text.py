@@ -15,12 +15,6 @@ if __name__ == "__main__":
         help="Path to SyNAP or GGUF model"
     )
     parser.add_argument(
-        "-t", "--tokens",
-        type=int,
-        required=True,
-        help="Input(s) token size for inference"
-    )
-    parser.add_argument(
         "-r", "--repeat",
         type=int,
         default=100,
@@ -49,7 +43,6 @@ if __name__ == "__main__":
         model = MiniLMLlama(
             model_name=model_path.stem, 
             model_path=str(model_path), 
-            token_len=args.tokens, 
             n_threads=args.threads
         )
     elif model_path.suffix == ".synap":
@@ -58,7 +51,6 @@ if __name__ == "__main__":
         model = MiniLMSynap(
             model_name=model_path.stem,
             model_path=str(model_path),
-            token_len=args.tokens,
             hf_model=args.hf_model
         )
 

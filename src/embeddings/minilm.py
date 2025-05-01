@@ -8,6 +8,7 @@ from llama_cpp import Llama
 from synap import Network
 from transformers import AutoTokenizer
 
+from ..utils.model import get_model_metadata
 from .base import BaseEmbeddingsModel
 
 
@@ -16,7 +17,6 @@ class MiniLMLlama(BaseEmbeddingsModel):
         self,
         model_name: str,
         model_path: str | os.PathLike,
-        token_len: int,
         normalize: bool = False,
         n_threads: int | None = None,
         export_dir: str | os.PathLike | None = None
@@ -24,7 +24,6 @@ class MiniLMLlama(BaseEmbeddingsModel):
         super().__init__(
             model_name,
             model_path,
-            token_len,
             normalize,
             export_dir
         )
@@ -32,7 +31,6 @@ class MiniLMLlama(BaseEmbeddingsModel):
             model_path=str(self.model_path),
             n_threads=n_threads,
             n_threads_batch=n_threads,
-            n_ctx=self.token_len,
             embedding=True,
             verbose=False
         )
@@ -53,7 +51,6 @@ class MiniLMSynap(BaseEmbeddingsModel):
         self,
         model_name: str,
         model_path: str,
-        token_len: int,
         hf_model: str,
         normalize: bool = False,
         export_dir: str | os.PathLike | None = None
@@ -61,12 +58,17 @@ class MiniLMSynap(BaseEmbeddingsModel):
         super().__init__(
             model_name,
             model_path,
-            token_len,
             normalize,
             export_dir
         )
         self.model = Network(str(self.model_path))
         self.tokenizer = AutoTokenizer.from_pretrained(hf_model)
+
+        model_meta = get_model_metadata(str(self.model_path))
+        token_dims = sorted([inp['shape'][1] for inp in model_meta['inputs']])
+        if len(set(token_dims)) > 1:
+            print("Warning: multiple dimensions found for token len, selecting the largest")
+        self.token_len = token_dims[-1]
 
     @staticmethod
     def mean_pooling(

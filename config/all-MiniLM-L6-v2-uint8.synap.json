@@ -1,7 +1,6 @@
 {
     "model_name": "SyNAP (UINT8)",
     "model_path": "models/synap/all-MiniLM-L6-v2-uint8-random.synap",
-    "token_len": 128,
     "hf_model": "sentence-transformers/all-MiniLM-L6-v2",
     "normalize": false
 }
