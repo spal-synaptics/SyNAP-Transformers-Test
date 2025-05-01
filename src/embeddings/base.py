@@ -32,12 +32,16 @@ class BaseEmbeddingsModel(ABC):
         return self._infer_times[-1] if self._infer_times else None
     
     @property
-    def avg_infer_time(self) -> float | None:
-        return (sum(self._infer_times) / self.n_infer) if self._infer_times else None
-    
-    @property
     def n_infer(self) -> int:
         return len(self._infer_times)
+    
+    @property
+    def total_infer_time(self) -> float:
+        return sum(self._infer_times)
+    
+    @property
+    def avg_infer_time(self) -> float | None:
+        return (self.total_infer_time / self.n_infer) if self._infer_times else None
     
     @abstractmethod
     def generate(self, text: str) -> list[float]:
